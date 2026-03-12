@@ -164,15 +164,6 @@ Prints a JSON config you can merge into `~/.claude/settings.json` to auto-compre
 |---|---|---|
 | `--keep-ratio` | `0.8` | Keep ratio for the generated hook command |
 
-## Contributing
-
-Contributions welcome. Please open an issue first to discuss changes.
-
-1. Fork the repository
-2. Create your branch (`git checkout -b feature/my-feature`)
-3. Commit your changes
-4. Push and open a Pull Request
-
 ## License
 
 MIT — see [LICENSE](LICENSE).
