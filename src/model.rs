@@ -54,7 +54,7 @@ pub fn load_tokenizer(model_path: &Path) -> Result<Tokenizer> {
     } else {
         let fallback = hf_hub::api::sync::Api::new()
             .context("Failed to create sync HF API")?
-            .model("meta-llama/Meta-Llama-3-8B".to_string())
+            .model("bartowski/Llama-3.2-1B-Instruct-GGUF".to_string())
             .get("tokenizer.json")
             .context("Failed to download fallback tokenizer")?;
         Tokenizer::from_file(&fallback)
