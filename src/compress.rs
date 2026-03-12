@@ -356,7 +356,7 @@ mod tests {
     fn select_tokens_half_preserves_order() {
         let surprisals = vec![3.0, 1.0, 4.0, 1.0, 5.0, 9.0, 2.0, 6.0];
         let kept = select_tokens(&surprisals, 0.5); // keep 4
-        // Must be sorted ascending (original order preserved)
+                                                    // Must be sorted ascending (original order preserved)
         for w in kept.windows(2) {
             assert!(w[0] < w[1], "Order not preserved: {:?}", kept);
         }
