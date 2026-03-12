@@ -519,6 +519,7 @@ dependencies = [
  "candle-nn",
  "candle-transformers",
  "clap",
+ "dirs",
  "hf-hub",
  "indicatif",
  "predicates",

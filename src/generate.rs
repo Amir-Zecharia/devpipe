@@ -1,6 +1,7 @@
 use anyhow::{Context, Result};
 use indicatif::{ProgressBar, ProgressStyle};
 use serde::{Deserialize, Serialize};
+use std::io::Write;
 use std::path::PathBuf;
 
 pub const SYSTEM_PROMPT: &str = r#"You are a senior Product Manager and Software Architect with 15+ years of experience.
@@ -48,10 +49,76 @@ struct ChatResponse {
     choices: Vec<ChatChoice>,
 }
 
+/// Get the config file path: ~/.config/devpipe/config.json
+fn config_path() -> PathBuf {
+    dirs::home_dir()
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join(".config")
+        .join("devpipe")
+        .join("config.json")
+}
+
+/// Load the API key from config file.
+fn load_api_key() -> Option<String> {
+    let path = config_path();
+    let content = std::fs::read_to_string(&path).ok()?;
+    let config: serde_json::Value = serde_json::from_str(&content).ok()?;
+    config["groq_api_key"].as_str().map(|s| s.to_string())
+}
+
+/// Save the API key to config file.
+fn save_api_key(key: &str) -> Result<()> {
+    let path = config_path();
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).context("Failed to create config directory")?;
+    }
+    let config = serde_json::json!({ "groq_api_key": key });
+    std::fs::write(&path, serde_json::to_string_pretty(&config)?)
+        .context("Failed to save config file")?;
+    eprintln!("API key saved to {}", path.display());
+    Ok(())
+}
+
+/// Get the Groq API key: env var > config file > prompt user.
+fn get_api_key() -> Result<String> {
+    // 1. Check environment variable
+    if let Ok(key) = std::env::var("GROQ_API_KEY") {
+        if !key.is_empty() {
+            return Ok(key);
+        }
+    }
+
+    // 2. Check config file
+    if let Some(key) = load_api_key() {
+        if !key.is_empty() {
+            return Ok(key);
+        }
+    }
+
+    // 3. Prompt the user
+    eprintln!("No Groq API key found.");
+    eprintln!("Get your free API key at: https://console.groq.com");
+    eprintln!();
+    eprint!("Enter your Groq API key: ");
+    std::io::stderr().flush()?;
+
+    let mut key = String::new();
+    std::io::stdin().read_line(&mut key)?;
+    let key = key.trim().to_string();
+
+    if key.is_empty() {
+        anyhow::bail!("No API key provided. Cannot continue.");
+    }
+
+    // Save for next time
+    save_api_key(&key)?;
+
+    Ok(key)
+}
+
 /// Call the Groq API and return the generated spec text.
 pub async fn generate_spec_string(prompt: &str, model: &str, max_tokens: u32) -> Result<String> {
-    let api_key = std::env::var("GROQ_API_KEY")
-        .context("GROQ_API_KEY environment variable is not set.\n\nPlease set it before running:\n  export GROQ_API_KEY=your_api_key_here\n\nGet your free API key at: https://console.groq.com")?;
+    let api_key = get_api_key()?;
 
     let user_content = format!(
         "Generate a comprehensive technical specification for the following:\n\n{}",
