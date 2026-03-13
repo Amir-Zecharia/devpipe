@@ -18,29 +18,33 @@ pub fn compute_surprisals(
         return Ok(surprisals);
     }
 
-    // Feed all tokens at once and retrieve per-position logits
-    let input =
-        Tensor::from_slice(token_ids, (1, n), device).context("Failed to create input tensor")?;
+    // Process tokens one at a time for autoregressive scoring.
+    // candle's ModelWeights maintains an internal KV-cache: each forward()
+    // call appends new K/V vectors and attends over all prior positions,
+    // avoiding redundant recomputation.
+    for i in 0..n - 1 {
+        let input = Tensor::new(&[token_ids[i]], device)
+            .context("Failed to create input tensor")?
+            .unsqueeze(0)?;
 
-    let logits = model
-        .forward(&input, 0)
-        .context("Model forward pass failed")?;
+        let logits = model
+            .forward(&input, i)
+            .context("Model forward pass failed")?;
 
-    // logits shape: (1, n, vocab_size) -- squeeze batch dim
-    let logits = logits.squeeze(0).context("Failed to squeeze batch dim")?; // (n, vocab)
+        // logits shape: (1, vocab_size) — flatten to 1D
+        let logits = logits.flatten_all()?;
+        let log_probs = candle_nn::ops::log_softmax(&logits, 0)
+            .context("Failed to compute log-softmax")?;
+        let log_probs_vec: Vec<f32> = log_probs.to_vec1()?;
 
-    let log_probs =
-        candle_nn::ops::log_softmax(&logits, 1).context("Failed to compute log-softmax")?; // (n, vocab)
-
-    // For position i (1..n), surprisal = -log_prob[i-1, token[i]]
-    let log_probs_vec: Vec<f32> = log_probs.flatten_all()?.to_vec1()?;
-    let vocab_size = log_probs.dim(1)?;
-
-    for i in 1..n {
-        let pred_pos = i - 1;
-        let tok = token_ids[i] as usize;
-        let lp = log_probs_vec[pred_pos * vocab_size + tok];
-        surprisals[i] = -lp;
+        let next_tok = token_ids[i + 1] as usize;
+        if next_tok >= log_probs_vec.len() {
+            anyhow::bail!(
+                "Token ID {} at position {} exceeds vocabulary size {} -- tokenizer/model mismatch?",
+                next_tok, i + 1, log_probs_vec.len()
+            );
+        }
+        surprisals[i + 1] = -log_probs_vec[next_tok];
     }
 
     Ok(surprisals)
@@ -146,13 +150,12 @@ pub fn target_tokens_keep_ratio(surprisals: &[f32], target: usize) -> f32 {
     (keep_count as f32 / n as f32).clamp(0.01, 1.0)
 }
 
-/// Main compress orchestration: load model, tokenize, score, select, decode, output.
+/// Core sync compress logic: given a resolved model path, load model, tokenize, score, select, decode.
 #[allow(clippy::too_many_arguments)]
-pub async fn run_compress(
+fn run_compress_inner(
     input: &Option<PathBuf>,
     keep_ratio: f32,
-    model_repo: &str,
-    model_file: &str,
+    model_path: &std::path::Path,
     stats: bool,
     auto: bool,
     target_tokens: Option<usize>,
@@ -164,20 +167,13 @@ pub async fn run_compress(
         return Ok(String::new());
     }
 
-    // Resolve model path
-    let model_path = if model_repo.contains('/') {
-        model::download_model(model_repo, model_file).await?
-    } else {
-        PathBuf::from(model_repo)
-    };
-
     let device = model::select_device();
 
     // Load model weights
-    let mut weights = model::load_model_weights(&model_path, &device)?;
+    let mut weights = model::load_model_weights(model_path, &device)?;
 
     // Load tokenizer
-    let tokenizer = model::load_tokenizer(&model_path)?;
+    let tokenizer = model::load_tokenizer(model_path)?;
 
     // Tokenize input
     let encoding = tokenizer
@@ -259,6 +255,28 @@ pub async fn run_compress(
     }
 
     Ok(output)
+}
+
+/// Main compress orchestration: resolve model (async), then delegate to sync inner function.
+#[allow(clippy::too_many_arguments)]
+pub async fn run_compress(
+    input: &Option<PathBuf>,
+    keep_ratio: f32,
+    model_repo: &str,
+    model_file: &str,
+    stats: bool,
+    auto: bool,
+    target_tokens: Option<usize>,
+    perplexity: bool,
+) -> Result<String> {
+    // Resolve model path (only async part)
+    let model_path = if model_repo.contains('/') {
+        model::download_model(model_repo, model_file).await?
+    } else {
+        PathBuf::from(model_repo)
+    };
+
+    run_compress_inner(input, keep_ratio, &model_path, stats, auto, target_tokens, perplexity)
 }
 
 #[cfg(test)]

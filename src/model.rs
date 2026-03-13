@@ -5,6 +5,18 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 use tokenizers::Tokenizer;
 
+const EMBEDDED_TOKENIZER_GZ: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/tokenizer.json.gz"));
+
+/// Decompress the gzip-compressed embedded tokenizer bytes.
+fn decompress_tokenizer() -> Result<Vec<u8>> {
+    let mut decoder = flate2::read::GzDecoder::new(EMBEDDED_TOKENIZER_GZ);
+    let mut buf = Vec::new();
+    decoder
+        .read_to_end(&mut buf)
+        .context("Failed to decompress embedded tokenizer")?;
+    Ok(buf)
+}
+
 /// Select the best available compute device (Metal on macOS, CPU elsewhere).
 pub fn select_device() -> Device {
     #[cfg(feature = "metal")]
@@ -42,7 +54,7 @@ pub fn load_model_weights(model_path: &Path, device: &Device) -> Result<ModelWei
     Ok(weights)
 }
 
-/// Load a tokenizer from the same directory as the model file, or fall back to HF hub.
+/// Load a tokenizer from the same directory as the model file, or fall back to embedded tokenizer.
 pub fn load_tokenizer(model_path: &Path) -> Result<Tokenizer> {
     let dir = model_path
         .parent()
@@ -52,13 +64,9 @@ pub fn load_tokenizer(model_path: &Path) -> Result<Tokenizer> {
         Tokenizer::from_file(&tok_path)
             .map_err(|e| anyhow::anyhow!("Failed to load tokenizer from {:?}: {}", tok_path, e))
     } else {
-        let fallback = hf_hub::api::sync::Api::new()
-            .context("Failed to create sync HF API")?
-            .model("bartowski/Llama-3.2-1B-Instruct-GGUF".to_string())
-            .get("tokenizer.json")
-            .context("Failed to download fallback tokenizer")?;
-        Tokenizer::from_file(&fallback)
-            .map_err(|e| anyhow::anyhow!("Failed to load fallback tokenizer: {}", e))
+        let bytes = decompress_tokenizer()?;
+        Tokenizer::from_bytes(&bytes)
+            .map_err(|e| anyhow::anyhow!("Failed to load embedded tokenizer: {}", e))
     }
 }
 

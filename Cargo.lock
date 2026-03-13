@@ -520,6 +520,7 @@ dependencies = [
  "candle-transformers",
  "clap",
  "dirs",
+ "flate2",
  "hf-hub",
  "indicatif",
  "predicates",
