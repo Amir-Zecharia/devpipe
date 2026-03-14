@@ -1,3 +1,4 @@
+mod analyze;
 mod compress;
 mod generate;
 mod hook;
@@ -105,6 +106,24 @@ enum Commands {
         stats: bool,
     },
 
+    /// Analyze text by showing a surprisal heatmap with color-coded tokens
+    Analyze {
+        /// Input file path (reads from stdin if not provided)
+        input: Option<PathBuf>,
+        /// HuggingFace repo ID or local path to GGUF model
+        #[arg(long, default_value = "bartowski/Llama-3.2-1B-Instruct-GGUF")]
+        model: String,
+        /// Specific GGUF filename within the HF repo
+        #[arg(long, default_value = "Llama-3.2-1B-Instruct-Q4_K_M.gguf")]
+        model_file: String,
+        /// Print statistics to stderr
+        #[arg(long)]
+        stats: bool,
+        /// Output as JSON instead of colored text
+        #[arg(long)]
+        json: bool,
+    },
+
     /// Print Claude Code UserPromptSubmit hook configuration JSON
     Hook {
         /// Keep ratio to use in the generated hook command
@@ -172,6 +191,16 @@ async fn main() -> anyhow::Result<()> {
                 stats,
             )
             .await?;
+        }
+
+        Commands::Analyze {
+            input,
+            model,
+            model_file,
+            stats,
+            json,
+        } => {
+            analyze::run_analyze(&input, &model, &model_file, stats, json).await?;
         }
 
         Commands::Hook { keep_ratio } => {
