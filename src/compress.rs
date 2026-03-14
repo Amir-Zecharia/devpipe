@@ -150,6 +150,38 @@ pub fn target_tokens_keep_ratio(surprisals: &[f32], target: usize) -> f32 {
     (keep_count as f32 / n as f32).clamp(0.01, 1.0)
 }
 
+/// Resolve a --budget value to a token count.
+/// Accepts a plain number (e.g. "4096") or a model name (e.g. "gpt-4o").
+pub fn resolve_budget(budget: &str) -> Result<usize> {
+    if let Ok(n) = budget.parse::<usize>() {
+        return Ok(n);
+    }
+    let tokens = match budget.to_lowercase().as_str() {
+        "gpt-4o" | "gpt-4o-mini" => 128_000,
+        "gpt-4" | "gpt-4-turbo" => 128_000,
+        "gpt-3.5" | "gpt-3.5-turbo" => 16_385,
+        "claude-3-opus" | "claude-3-sonnet" | "claude-3-haiku" => 200_000,
+        "claude-3.5-sonnet" | "claude-3.5-haiku" => 200_000,
+        "claude-opus-4" | "claude-sonnet-4" => 200_000,
+        "llama-3-8b" | "llama-3-70b" => 8_192,
+        "llama-3.1-8b" | "llama-3.1-70b" | "llama-3.1-405b" => 128_000,
+        "llama-3.2-1b" | "llama-3.2-3b" => 128_000,
+        "mistral-7b" | "mistral" => 32_768,
+        "mixtral" | "mixtral-8x7b" => 32_768,
+        "gemini-pro" | "gemini-1.5-pro" => 1_000_000,
+        "gemini-1.5-flash" => 1_000_000,
+        "deepseek-v2" | "deepseek-coder" => 128_000,
+        "phi-3" | "phi-3-mini" => 128_000,
+        "command-r" => 128_000,
+        "command-r-plus" => 128_000,
+        _ => anyhow::bail!(
+            "Unknown model '{}'. Use a number (e.g. --budget 4096) or a known model name (gpt-4o, claude-3-opus, llama-3.1-8b, etc.)",
+            budget
+        ),
+    };
+    Ok(tokens)
+}
+
 /// Core sync compress logic: given a resolved model path, load model, tokenize, score, select, decode.
 #[allow(clippy::too_many_arguments)]
 fn run_compress_inner(
@@ -368,6 +400,30 @@ mod tests {
         let surprisals = vec![1.0, 8.0, 2.0, 7.0, 9.0];
         let kept = select_tokens(&surprisals, 0.6);
         assert_eq!(kept, vec![1, 3, 4]);
+    }
+
+    #[test]
+    fn resolve_budget_number() {
+        assert_eq!(resolve_budget("4096").unwrap(), 4096);
+        assert_eq!(resolve_budget("128000").unwrap(), 128000);
+    }
+
+    #[test]
+    fn resolve_budget_model_name() {
+        assert_eq!(resolve_budget("gpt-4o").unwrap(), 128_000);
+        assert_eq!(resolve_budget("claude-3-opus").unwrap(), 200_000);
+        assert_eq!(resolve_budget("llama-3.1-8b").unwrap(), 128_000);
+    }
+
+    #[test]
+    fn resolve_budget_unknown_model() {
+        assert!(resolve_budget("unknown-model-xyz").is_err());
+    }
+
+    #[test]
+    fn resolve_budget_case_insensitive() {
+        assert_eq!(resolve_budget("GPT-4O").unwrap(), 128_000);
+        assert_eq!(resolve_budget("Claude-3-Opus").unwrap(), 200_000);
     }
 
     #[test]

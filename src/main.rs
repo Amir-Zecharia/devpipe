@@ -53,6 +53,10 @@ enum Commands {
         /// Compute and print perplexity of the input text, then exit (no compression)
         #[arg(long)]
         perplexity: bool,
+
+        /// Token budget: a number (e.g. 4096) or model name (e.g. gpt-4o) to look up context window
+        #[arg(long)]
+        budget: Option<String>,
     },
 
     /// Generate a comprehensive technical specification from a brief prompt using Groq
@@ -146,7 +150,14 @@ async fn main() -> anyhow::Result<()> {
             auto,
             target_tokens,
             perplexity,
+            budget,
         } => {
+            // Resolve --budget to target_tokens
+            let target_tokens = if let Some(ref b) = budget {
+                Some(compress::resolve_budget(b)?)
+            } else {
+                target_tokens
+            };
             let output = compress::run_compress(
                 &input,
                 keep_ratio,
