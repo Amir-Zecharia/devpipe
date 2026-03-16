@@ -511,7 +511,7 @@ dependencies = [
 
 [[package]]
 name = "devpipe"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -522,7 +522,6 @@ dependencies = [
  "dirs",
  "flate2",
  "hf-hub",
- "indicatif",
  "predicates",
  "reqwest 0.12.28",
  "serde",

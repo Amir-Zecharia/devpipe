@@ -8,8 +8,8 @@ use std::path::PathBuf;
 #[derive(Parser)]
 #[command(
     name = "devpipe",
-    about = "Unified CLI: compress text with LLM surprisal scoring + generate specs via Groq API",
-    long_about = "Unified CLI: compress text with LLM surprisal scoring + generate specs via Groq API.\n\nExamples:\n  devpipe compress input.txt --stats\n  devpipe compress input.txt --auto\n  devpipe generate \"Payment service\" -o spec.md\n  devpipe generate-compress \"Auth system\" --keep-ratio 0.5",
+    about = "CLI for LLM-powered text compression (surprisal scoring) and technical spec generation via Groq",
+    long_about = "CLI for LLM-powered text compression (surprisal scoring) and technical spec generation via Groq.\n\nExamples:\n  devpipe compress input.txt --stats\n  devpipe compress input.txt --auto\n  devpipe generate \"Payment service\" -o spec.md\n  devpipe generate-compress \"Auth system\" --keep-ratio 0.5",
     version
 )]
 struct Cli {

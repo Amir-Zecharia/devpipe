@@ -152,7 +152,8 @@ pub fn target_tokens_keep_ratio(surprisals: &[f32], target: usize) -> f32 {
 
 /// Resolve a --budget value to a token count.
 /// Accepts a plain number (e.g. "4096") or a model name (e.g. "gpt-4o").
-pub fn resolve_budget(budget: &str) -> Result<usize> {
+#[cfg(test)]
+fn resolve_budget(budget: &str) -> Result<usize> {
     if let Ok(n) = budget.parse::<usize>() {
         return Ok(n);
     }

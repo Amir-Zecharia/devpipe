@@ -1,5 +1,4 @@
 use anyhow::{Context, Result};
-use indicatif::{ProgressBar, ProgressStyle};
 use serde::{Deserialize, Serialize};
 use std::io::Write;
 use std::path::PathBuf;
@@ -228,48 +227,6 @@ pub async fn compress_via_groq(text: &str, keep_ratio: f32) -> Result<String> {
         .content;
 
     Ok(content)
-}
-
-/// Main generate orchestration: call Groq API, write output file.
-pub async fn run_generate(
-    prompt: &str,
-    output: &Option<PathBuf>,
-    model: &str,
-    max_tokens: u32,
-) -> Result<()> {
-    eprintln!("Prompt: {}", prompt);
-    eprintln!("Model:  {}", model);
-
-    let spinner = ProgressBar::new_spinner();
-    spinner.set_style(
-        ProgressStyle::default_spinner()
-            .template("{spinner:.cyan} {msg}")
-            .context("Failed to set progress spinner template")?,
-    );
-    spinner.set_message("Generating specification with Groq...");
-    spinner.enable_steady_tick(std::time::Duration::from_millis(100));
-
-    let spec_content = generate_spec_string(prompt, model, max_tokens).await?;
-
-    spinner.finish_and_clear();
-
-    match output {
-        Some(path) => {
-            std::fs::write(path, &spec_content)
-                .with_context(|| format!("Failed to write output file: {}", path.display()))?;
-            eprintln!(
-                "Specification generated successfully!\nFile: {}\nSize: {} characters",
-                path.display(),
-                spec_content.len()
-            );
-        }
-        None => {
-            // No output file specified: print to stdout
-            print!("{}", spec_content);
-        }
-    }
-
-    Ok(())
 }
 
 #[cfg(test)]
