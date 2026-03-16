@@ -20,7 +20,9 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     /// Compress text by removing low-information tokens using LLM surprisal scoring
-    #[command(long_about = "Compress text by removing low-information tokens using LLM surprisal scoring.\n\nScores each token by surprisal (how unexpected it is given context), then keeps\nonly the most informative ones.\n\nExamples:\n  devpipe compress input.txt --stats\n  devpipe compress input.txt --auto --stats\n  devpipe compress input.txt --target-tokens 200\n  cat input.txt | devpipe compress --keep-ratio 0.5")]
+    #[command(
+        long_about = "Compress text by removing low-information tokens using LLM surprisal scoring.\n\nScores each token by surprisal (how unexpected it is given context), then keeps\nonly the most informative ones.\n\nExamples:\n  devpipe compress input.txt --stats\n  devpipe compress input.txt --auto --stats\n  devpipe compress input.txt --target-tokens 200\n  cat input.txt | devpipe compress --keep-ratio 0.5"
+    )]
     Compress {
         /// Input text or file path (reads from stdin if not provided)
         input: Option<String>,
@@ -47,7 +49,9 @@ enum Commands {
     },
 
     /// Generate a technical specification from a brief prompt using Groq
-    #[command(long_about = "Generate a technical specification from a brief prompt using Groq.\n\nSends a structured prompt to the Groq API and returns a developer-ready spec\nwith architecture, data models, implementation plan, and edge cases.\n\nExamples:\n  devpipe generate \"Payment processing microservice\"\n  devpipe generate \"Auth system with OAuth2\" -o spec.md --json")]
+    #[command(
+        long_about = "Generate a technical specification from a brief prompt using Groq.\n\nSends a structured prompt to the Groq API and returns a developer-ready spec\nwith architecture, data models, implementation plan, and edge cases.\n\nExamples:\n  devpipe generate \"Payment processing microservice\"\n  devpipe generate \"Auth system with OAuth2\" -o spec.md --json"
+    )]
     Generate {
         /// A short description of the feature or tool to generate a spec for
         prompt: String,
@@ -120,9 +124,7 @@ async fn main() -> anyhow::Result<()> {
             let start = std::time::Instant::now();
             // Resolve input: file path, raw text, or stdin
             let (text, file_input) = match &input {
-                Some(s) if std::path::Path::new(s).exists() => {
-                    (None, Some(PathBuf::from(s)))
-                }
+                Some(s) if std::path::Path::new(s).exists() => (None, Some(PathBuf::from(s))),
                 Some(s) => (Some(s.clone()), None),
                 None => (None, None), // will read from stdin
             };

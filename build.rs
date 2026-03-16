@@ -9,7 +9,9 @@ fn main() {
 
     let file = std::fs::File::create(&dest).expect("Failed to create compressed tokenizer");
     let mut encoder = GzEncoder::new(file, Compression::best());
-    encoder.write_all(&raw).expect("Failed to write compressed tokenizer");
+    encoder
+        .write_all(&raw)
+        .expect("Failed to write compressed tokenizer");
     encoder.finish().expect("Failed to finish gzip encoding");
 
     println!("cargo:rerun-if-changed=src/tokenizer.json");

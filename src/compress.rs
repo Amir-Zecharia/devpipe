@@ -33,8 +33,8 @@ pub fn compute_surprisals(
 
         // logits shape: (1, vocab_size) — flatten to 1D
         let logits = logits.flatten_all()?;
-        let log_probs = candle_nn::ops::log_softmax(&logits, 0)
-            .context("Failed to compute log-softmax")?;
+        let log_probs =
+            candle_nn::ops::log_softmax(&logits, 0).context("Failed to compute log-softmax")?;
         let log_probs_vec: Vec<f32> = log_probs.to_vec1()?;
 
         let next_tok = token_ids[i + 1] as usize;
@@ -308,7 +308,15 @@ pub async fn run_compress(
         PathBuf::from(model_repo)
     };
 
-    run_compress_inner(input, keep_ratio, &model_path, stats, auto, target_tokens, perplexity)
+    run_compress_inner(
+        input,
+        keep_ratio,
+        &model_path,
+        stats,
+        auto,
+        target_tokens,
+        perplexity,
+    )
 }
 
 #[cfg(test)]
