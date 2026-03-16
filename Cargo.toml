@@ -1,6 +1,6 @@
 [package]
 name = "devpipe"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "Unified CLI: compress text with LLM surprisal scoring + generate specs via Groq API"
 license = "MIT"
@@ -18,7 +18,7 @@ clap = { version = "4", features = ["derive"] }
 candle-core = "0.8"
 candle-nn = "0.8"
 candle-transformers = "0.8"
-tokenizers = "0.20"
+tokenizers = { version = "0.20", default-features = false, features = ["onig"] }
 hf-hub = { version = "0.3", features = ["tokio"] }
 reqwest = { version = "0.12", features = ["json"] }
 anyhow = "1"

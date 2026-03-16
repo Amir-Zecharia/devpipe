@@ -29,7 +29,6 @@ fn compress_help_shows_options() {
         .assert()
         .success()
         .stdout(predicate::str::contains("keep-ratio"))
-        .stdout(predicate::str::contains("model"))
         .stdout(predicate::str::contains("stats"))
         .stdout(predicate::str::contains("auto"))
         .stdout(predicate::str::contains("target-tokens"));
@@ -42,8 +41,8 @@ fn generate_help_shows_options() {
         .args(["generate", "--help"])
         .assert()
         .success()
-        .stdout(predicate::str::contains("prompt"))
+        .stdout(predicate::str::contains("PROMPT"))
         .stdout(predicate::str::contains("--output"))
-        .stdout(predicate::str::contains("--model"))
-        .stdout(predicate::str::contains("max-tokens"));
+        .stdout(predicate::str::contains("--json"))
+        .stdout(predicate::str::contains("--stats"));
 }

@@ -6,3 +6,4 @@
 *.gguf
 tokenizer.json
 src/src/
+.a5c/

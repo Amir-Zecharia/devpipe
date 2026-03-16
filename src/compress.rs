@@ -106,7 +106,7 @@ pub fn elbow_keep_ratio(surprisals: &[f32]) -> f32 {
     // Tokens with surprisal >= sorted[elbow_idx] are "informative" -- keep them.
     let threshold = sorted[elbow_idx];
     let keep_count = surprisals.iter().filter(|&&s| s >= threshold).count();
-    (keep_count as f32 / surprisals.len() as f32).clamp(0.01, 1.0)
+    (keep_count as f32 / surprisals.len() as f32).clamp(0.3, 1.0)
 }
 
 /// Target-tokens mode: binary-search for the surprisal threshold that yields exactly

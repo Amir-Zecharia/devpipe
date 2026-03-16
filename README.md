@@ -8,12 +8,10 @@ LLM-powered text compression and spec generation from the command line.
 ## Features
 
 - **Surprisal-based compression** — remove low-information tokens using a local quantized Llama model
-- **Spec generation** — produce detailed technical specifications via the Groq API (Llama 3.3 70B)
-- **Pipelines** — chain compression and generation in either order
-- **Auto-tuning** — elbow detection for optimal compression ratio, or target a specific token count
-- **Perplexity scoring** — measure input text perplexity without compressing
+- **Spec generation** — produce detailed technical specifications via the Groq API
+- **Pipelines** — chain compression and generation in either order (via `pipe` subcommand or cross-command flags like `--compress` and `--generate`)
+- **Surprisal heatmap** — visualize token information density with color-coded output
 - **Claude Code integration** — generate hook configs for automatic prompt compression
-- **Fully local compression** — no API calls needed; model is downloaded and cached on first run
 
 ## Prerequisites
 
@@ -63,6 +61,18 @@ devpipe compress input.txt --target-tokens 200
 # Compute perplexity without compressing
 devpipe compress input.txt --perplexity
 
+# Visualize surprisal heatmap
+devpipe compress input.txt --heatmap --stats
+
+# Output heatmap as JSON
+devpipe compress input.txt --heatmap --json
+
+# Generate a Claude Code hook config
+devpipe compress --emit-hook --keep-ratio 0.8
+
+# Compress then generate a spec (shorthand for pipe compress-generate)
+devpipe compress input.txt --generate
+
 # Use a different model
 devpipe compress input.txt \
   --model bartowski/Llama-3.2-3B-Instruct-GGUF \
@@ -82,6 +92,12 @@ devpipe generate "A real-time collaborative code editor" -o spec.md
 
 # Use a different Groq model
 devpipe generate "Auth system with OAuth2" -m llama-3.3-70b-versatile
+
+# Generate a spec then compress it (shorthand for pipe generate-compress)
+devpipe generate "Payment processing microservice" --compress
+
+# Generate then compress with a custom keep ratio
+devpipe generate "Payment processing microservice" --compress --keep-ratio 0.5
 ```
 
 ### Pipeline (chain operations)
@@ -93,14 +109,6 @@ devpipe pipe compress-generate large_dump.txt --keep-ratio 0.5
 # Generate a spec, then compress the output
 devpipe pipe generate-compress prompt.txt --keep-ratio 0.8
 ```
-
-### Generate a Claude Code hook config
-
-```bash
-devpipe hook --keep-ratio 0.8
-```
-
-Prints a JSON config you can merge into `~/.claude/settings.json` to auto-compress prompts before they reach the model.
 
 ## How It Works
 
@@ -118,7 +126,8 @@ Prints a JSON config you can merge into `~/.claude/settings.json` to auto-compre
 | `compress.rs` | Surprisal scoring, token filtering, elbow detection, perplexity |
 | `generate.rs` | Groq API client and structured prompt for spec generation |
 | `pipe.rs` | Pipeline orchestration (compress-generate, generate-compress) |
-| `hook.rs` | Claude Code hook config JSON generation |
+| `hook.rs` | Claude Code hook config generation (used internally by `compress --emit-hook`) |
+| `analyze.rs` | Surprisal heatmap rendering (used internally by `compress --heatmap`) |
 | `model.rs` | GGUF model downloading and loading via HuggingFace Hub |
 
 ## CLI Reference
@@ -135,6 +144,10 @@ Prints a JSON config you can merge into `~/.claude/settings.json` to auto-compre
 | `--auto` | off | Auto-detect keep ratio via elbow detection |
 | `--target-tokens` | - | Keep exactly this many output tokens |
 | `--perplexity` | off | Compute and print perplexity, then exit |
+| `--heatmap` | off | Display a color-coded surprisal heatmap |
+| `--json` | off | Output heatmap data as JSON (requires `--heatmap`) |
+| `--emit-hook` | off | Print a Claude Code hook config JSON |
+| `--generate` | off | After compressing, generate a spec from the result |
 
 ### `generate` options
 
@@ -144,6 +157,8 @@ Prints a JSON config you can merge into `~/.claude/settings.json` to auto-compre
 | `-o, --output` | stdout | Output file path |
 | `-m, --model` | `llama-3.3-70b-versatile` | Groq model |
 | `--max-tokens` | `8192` | Max response tokens |
+| `--compress` | off | After generating, compress the output |
+| `--keep-ratio` | `0.7` | Compression keep ratio (used with `--compress`) |
 
 ### `pipe` options
 
@@ -157,12 +172,6 @@ Prints a JSON config you can merge into `~/.claude/settings.json` to auto-compre
 | `--compress-model` | `bartowski/Llama-3.2-1B-Instruct-GGUF` | GGUF model for compression |
 | `--compress-model-file` | `Llama-3.2-1B-Instruct-Q4_K_M.gguf` | GGUF filename for compression |
 | `--stats` | off | Print compression stats to stderr |
-
-### `hook` options
-
-| Flag | Default | Description |
-|---|---|---|
-| `--keep-ratio` | `0.8` | Keep ratio for the generated hook command |
 
 ## License
 

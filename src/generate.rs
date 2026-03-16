@@ -172,6 +172,64 @@ pub async fn generate_spec_string(prompt: &str, model: &str, max_tokens: u32) ->
     Ok(content)
 }
 
+/// Compress text via Groq API by asking the LLM to keep only essential information.
+pub async fn compress_via_groq(text: &str, keep_ratio: f32) -> Result<String> {
+    let api_key = get_api_key()?;
+    let pct = (keep_ratio * 100.0) as u32;
+
+    let request_body = ChatRequest {
+        model: DEFAULT_GROQ_MODEL.to_string(),
+        max_tokens: DEFAULT_MAX_TOKENS,
+        messages: vec![
+            ChatMessage {
+                role: "system".to_string(),
+                content: format!(
+                    "You are a text compressor. Reduce the input to approximately {}% of its original length. \
+                     Keep only the most essential information, key terms, and critical details. \
+                     Remove filler words, redundant phrases, and non-essential formatting. \
+                     Output ONLY the compressed text, nothing else.",
+                    pct
+                ),
+            },
+            ChatMessage {
+                role: "user".to_string(),
+                content: text.to_string(),
+            },
+        ],
+    };
+
+    let client = reqwest::Client::new();
+    let response = client
+        .post("https://api.groq.com/openai/v1/chat/completions")
+        .header("Authorization", format!("Bearer {}", api_key))
+        .header("Content-Type", "application/json")
+        .json(&request_body)
+        .send()
+        .await
+        .context("Failed to connect to the Groq API")?;
+
+    if !response.status().is_success() {
+        let status = response.status();
+        let body = response.text().await.unwrap_or_default();
+        anyhow::bail!("Groq API returned error (HTTP {}): {}", status, body);
+    }
+
+    let chat_response: ChatResponse = response
+        .json()
+        .await
+        .context("Failed to parse Groq API response")?;
+
+    let content = chat_response
+        .choices
+        .into_iter()
+        .next()
+        .context("Groq API returned no choices")?
+        .message
+        .content;
+
+    Ok(content)
+}
+
 /// Main generate orchestration: call Groq API, write output file.
 pub async fn run_generate(
     prompt: &str,

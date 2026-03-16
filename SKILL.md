@@ -8,7 +8,7 @@ Use this skill when the user asks to:
 - Remove low-information tokens from text
 - Generate a technical specification from a prompt
 - Compress then generate a spec (or vice versa)
-- Set up a Claude Code hook for prompt compression
+- Show surprisal heatmap for text
 - Calculate perplexity of text
 
 ## Instructions
@@ -48,12 +48,24 @@ devpipe pipe compress-generate input.txt --keep-ratio 0.7
 
 # Generate spec from prompt, then compress the output
 devpipe pipe generate-compress prompt.txt --keep-ratio 0.8
+
+# Same workflows using cross-command flags (no pipe subcommand needed)
+devpipe compress input.txt --generate
+devpipe generate "Payment processing microservice" --compress
+devpipe generate "Payment processing microservice" --compress --keep-ratio 0.5
+```
+
+### Surprisal heatmap
+
+```bash
+devpipe compress input.txt --heatmap --stats
+devpipe compress input.txt --heatmap --json
 ```
 
 ### Generate Claude Code hook config
 
 ```bash
-devpipe hook --keep-ratio 0.8
+devpipe compress --emit-hook --keep-ratio 0.8
 ```
 
 Paste the output JSON into `~/.claude/settings.json` to auto-compress prompts.
