@@ -4,6 +4,6 @@
 .DS_Store
 .env
 *.gguf
-tokenizer.json
+/tokenizer.json
 src/src/
 .a5c/

@@ -1,15 +1,13 @@
 # devpipe
 
-Unified developer productivity CLI that compresses text by removing low-information tokens (LLM surprisal scoring) and generates technical specifications via Groq API. Can chain both operations in a pipeline.
+Unified developer productivity CLI that compresses text by removing low-information tokens (LLM surprisal scoring) and generates technical specifications via Groq API.
 
 ## Trigger
 Use this skill when the user asks to:
 - Compress text or code to reduce token count
 - Remove low-information tokens from text
 - Generate a technical specification from a prompt
-- Compress then generate a spec (or vice versa)
-- Show surprisal heatmap for text
-- Calculate perplexity of text
+- Generate a spec then compress the output
 
 ## Instructions
 
@@ -28,8 +26,8 @@ devpipe compress input.txt --auto --stats
 # Keep exact number of tokens
 devpipe compress input.txt --target-tokens 200
 
-# Compute perplexity
-devpipe compress input.txt --perplexity
+# Use Groq API for compression instead of local model
+devpipe compress input.txt --groq --stats
 ```
 
 ### Generate a technical spec
@@ -38,43 +36,33 @@ Requires `GROQ_API_KEY` environment variable.
 
 ```bash
 devpipe generate "A real-time collaborative editor" -o spec.md
+devpipe generate "Auth system with OAuth2" --json --stats
 ```
 
-### Pipeline (chain operations)
+### Generate then compress
 
 ```bash
-# Compress input, then use compressed text as spec prompt
-devpipe pipe compress-generate input.txt --keep-ratio 0.7
+# Generate a spec and compress the output
+devpipe generate-compress "Payment processing microservice" --stats
 
-# Generate spec from prompt, then compress the output
-devpipe pipe generate-compress prompt.txt --keep-ratio 0.8
+# With custom keep ratio
+devpipe generate-compress "Auth system" --keep-ratio 0.5 --stats
 
-# Same workflows using cross-command flags (no pipe subcommand needed)
-devpipe compress input.txt --generate
-devpipe generate "Payment processing microservice" --compress
-devpipe generate "Payment processing microservice" --compress --keep-ratio 0.5
+# Auto-detect optimal compression ratio
+devpipe generate-compress "CLI tool" --auto
+
+# Use Groq API for compression step
+devpipe generate-compress "API gateway" --groq
+
+# Output to file as JSON
+devpipe generate-compress "Auth system" -o spec.md --json
 ```
-
-### Surprisal heatmap
-
-```bash
-devpipe compress input.txt --heatmap --stats
-devpipe compress input.txt --heatmap --json
-```
-
-### Generate Claude Code hook config
-
-```bash
-devpipe compress --emit-hook --keep-ratio 0.8
-```
-
-Paste the output JSON into `~/.claude/settings.json` to auto-compress prompts.
 
 ### Installation
 
 If `devpipe` is not installed:
 ```bash
-cd ~/devpipe && cargo install --path .
+cd ~/devpipe2 && cargo install --path .
 ```
 
 ## Notes
